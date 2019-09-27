@@ -1,0 +1,17 @@
+"trial"	"phase"	"item"	"location"	"block"	"time"	"looksaway"	"prelook"	"postlook"	"protocol"	"participant"	"tester"	"sex"	"age"	"comments"
+1	2	1	2	1	3925	0	1584	5932	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+2	2	1	1	1	10651	3	1578	16165	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+3	2	1	1	1	16790	9	1435	25533	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+1	3	3	2	1	8648	0	1366	10661	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+2	3	2	2	1	4436	0	1184	6442	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+3	3	1	1	1	8728	1	1305	12370	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+4	3	4	1	1	1878	0	1258	3881	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+5	3	3	1	2	9408	0	1173	11418	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+6	3	4	2	2	11150	1	1220	14226	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+7	3	2	2	2	4706	0	1158	6722	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+8	3	1	1	2	2799	0	1345	4802	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+9	3	2	1	3	5902	1	1226	9305	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+10	3	1	2	3	3567	0	1640	5579	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+11	3	3	1	3	8088	1	1468	12030	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+12	3	4	2	3	3228	0	1247	5235	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA
+13	3	4	2	4	1720	0	1290	3742	"cat_gonmus"	"seg21"	"ggc"	"male"	263	NA

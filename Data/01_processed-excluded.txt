@@ -1,0 +1,15 @@
+"participant"	"rejection_verbose"	"few_trials"	"linguistic_profile"	"incomplete"	"experimental_failure"	"interference"	"health_issues"
+"1"	"seg44"	"few_trials"	1	0	0	0	0	0
+"2"	"segp3"	"few_trials"	1	0	0	0	0	0
+"3"	"seg19"	"incomplete"	0	0	1	0	0	0
+"4"	"seg22"	"health"	0	0	0	0	0	1
+"5"	"seg24"	"experimenter_profile"	0	1	0	1	0	0
+"6"	"seg26"	"experimenter"	0	0	0	1	0	0
+"7"	"seg29"	"experimental_failure"	0	0	0	1	0	0
+"8"	"seg3"	"health"	0	0	0	0	0	1
+"9"	"seg38"	"profile"	0	1	0	0	0	0
+"10"	"seg44"	"health"	0	0	0	0	0	1
+"11"	"seg8"	"interference"	0	0	0	0	1	0
+"12"	"segp5"	"pilot_profile"	0	1	0	0	0	0
+"13"	"segp7"	"pilot_profile"	0	1	0	0	0	0
+"14"	"segp8"	"pilot_health"	0	0	0	0	0	1
