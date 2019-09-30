@@ -1,0 +1,39 @@
+# Appendix 1: Parental educational attainment
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+library(dplyr)     # for manipulating data
+library(tidyr)     # for reshaping datasets
+library(ggplot2)   # for visualising data
+library(knitr)     # for nice tables
+
+
+data.agg <- read.delim("Data/02_aggregated.txt")
+
+n.demo <- data.agg %>%
+  select(participant, language, mother_education, father_education) %>%
+  group_by(participant, language, mother_education, father_education) %>%
+  summarise() %>%
+  group_by(language, mother_education, father_education) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  gather("parent", "education", -language, -n) %>%
+  mutate(parent = sub("_education", "", parent)) %>%
+  mutate(
+    language  = ifelse(language == "spa", "Spanish", "Catalan"),
+    parent    = ifelse(parent == "mother", "Mother", "Father"),
+    education = case_when(education == "vocational"    ~ "Vocational",
+                          education == "baccalaureate" ~ "Baccalaureate",
+                          education == "university"    ~ "University",
+                          TRUE                         ~ "Other")
+  ) %>%
+  rename(Language = language, N = n, Caretaker = parent, Attainment = education)
+
+
+
+kable(n.demo,
+      col.names = c("Language", "N", "Parent", "Attainment"),
+      digits = 2
+)
+
+```

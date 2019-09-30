@@ -1,0 +1,17 @@
+# Appendix 2: Participant-level looking times
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+library(dplyr)     # for manipulating data
+library(tidyr)     # for reshaping datasets
+library(ggplot2)   # for visualising data
+library(knitr)     # for nice tables
+
+data.agg <- read.delim("Data/02_aggregated.txt") %>%
+  select(participant, condition, language, familiar, novel)
+
+kable(data.agg,
+      digits = 2,
+      col.names = c("Participant", "Randomisation", "Language", "Familiar (ms)", "Unfamiliar (ms)")
+)
+```

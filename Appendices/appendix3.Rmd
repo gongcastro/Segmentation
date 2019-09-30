@@ -1,0 +1,123 @@
+# Appendix 3: Results without maxed out trials
+
+```{r lt-distribution_max_table, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+library(dplyr)     # for manipulating data
+library(tidyr)     # for reshaping datasets
+library(ggplot2)   # for visualising data
+library(knitr)     # for nice tables
+
+data <- read.delim("Data/01_processed.txt")
+
+data.max <- data %>%
+  filter(time <= 17000) %>%
+  group_by(participant, item, condition, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE),
+            n    = n())
+
+# wide processed, non-max out data
+data.max.agg <- data %>%
+  filter(time <= 17000) %>%
+  group_by(participant, condition, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE)) %>%
+  spread(trial_type, "time") %>%
+  mutate(
+    difference = novel-familiar,
+    proportion = novel/(novel+familiar)*100
+  )
+n <- nrow(data.max.agg)
+alpha <- 0.05
+
+kable(data.max.agg,
+      digits = 2,
+      col.names = c("Participant", "Randomisation", "Familiar (ms)", "Unfamiliar (ms)", "Difference (ms)", "Proportion (%)")
+)
+```
+
+```{r maxedOut_proportion, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+ggplot(data.max.agg, aes(x = proportion, fill = condition)) +
+  geom_density(alpha = 0.5, colour = NA) +
+  labs(x = "Percentage of maxed out trials (> 17,000 ms)", y = "Density", fill = "Test word") +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_x_continuous(limits = c(0, 100)) +
+  theme(
+    panel.grid = element_line(colour = "grey", linetype = "dotted"),
+    panel.grid.minor.y = element_line(colour = "grey", linetype = "dotted"),
+    panel.background = element_rect(fill = "white"),
+    legend.position = "top",
+    text = element_text(colour = "black", size = 12),
+    axis.text = element_text(colour = "black")
+  )
+
+```
+
+```{r lt-maxout_condition-item_table, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+max.out.item <- data %>%
+  filter(time > 17000) %>%
+  group_by(condition, item) %>%
+  summarise(n_maxout = n()) %>%
+  right_join(., (data %>% group_by(condition, item) %>% summarise(n_total = n()))) %>%
+  mutate(n_maxout = ifelse(is.na(n_maxout), 0, n_maxout),
+         proportion = 100*(n_maxout/n_total)) %>%
+  mutate(type = case_when((item == "gon" | item == "mus") & condition == "gonmus" ~ "familiar",
+                          (item == "for" | item == "pul") & condition == "forpul" ~ "familiar",
+                          TRUE                                                    ~ "novel"))
+
+kable(
+  max.out.item,
+  digits = 2,
+  col.names = c("Randomisation", "Word", "Maxed out", "Total", "%", "Type")
+)
+```
+
+Looking times were Filtered ($\leq$ 17,000 ms) and aggregated by participant.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+data.max %>%
+  group_by(participant, trial_type, condition) %>%
+  summarise(time = mean(time, na.rm = TRUE)) %>%
+  group_by(trial_type) %>%
+  summarise(n = n(),
+            mean = mean(time),
+            median = median(time),
+            sem = sd(time)/sqrt(n),
+            ci_lower = round(mean-sem*(qnorm(1-alpha/2)), 2),
+            ci_upper = round(mean+sem*(qnorm(1-alpha/2)), 2)) %>%
+  unite("ci", ci_lower, ci_upper, sep = ", ") %>%
+  mutate(ci = paste0("[", ci, "]")) %>%
+  kable(.,
+        digits = 2,
+        row.names = FALSE,
+        col.names = c("Trial type", "N", "Mean", "Median", "SEM", "95% CI")
+  )
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+t.test.data.max <- data.max %>%
+  group_by(participant, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE)) %>%
+  spread(trial_type, time) 
+
+t.test.max <- t.test(t.test.data.max$familiar, t.test.data.max$novel, paired = TRUE)
+
+data.max %>%
+  group_by(participant, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE)) %>%
+  group_by(trial_type) %>%
+  summarise(time = mean(time)) %>%
+  spread(trial_type, time) %>%
+  mutate(t_value = t.test.max$statistic,
+         df = t.test.max$parameter,
+         ci_lower = round(t.test.max$conf.int[1], 2),
+         ci_upper = round(t.test.max$conf.int[2], 2),
+         p_value = t.test.max$p.value,
+         d = abs(t_value/(sqrt(n)))) %>%
+  unite("ci", ci_lower, ci_upper, sep = ", ") %>%
+  mutate(ci = paste0("[", ci, "]")) %>%
+  kable(.,
+        digits = 3,
+        row.names = FALSE,
+        col.names = c("Familiar", "Unfamiliar", "T-value", "DF", "95% CI", "p-value", "Cohen's D")
+  )
+```
