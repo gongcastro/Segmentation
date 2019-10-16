@@ -1,13 +1,21 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # Appendix 3: Results without maxed out trials
 
-```{r lt-distribution_max_table, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+During data collection, one of the concerns raised by one of the testers was that many infants reached the maximum looking time by trial very frequently. If this was the case, it would be possible that the lack of statistically significant differences was not due to the absence of preference toward one of the stimuly types, but rather because of a ceiling effect. To rule out this possibility we first calculated the proportion of trials in which infants looked more than 17,000 ms, then discarded those trials, and re-run the same analysis as with the original data.
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 
 library(dplyr)     # for manipulating data
 library(tidyr)     # for reshaping datasets
 library(ggplot2)   # for visualising data
 library(knitr)     # for nice tables
 
-data <- read.delim("Data/01_processed.txt")
+data <- read.delim("../Data/01_processed.txt")
 
 data.max <- data %>%
   filter(time <= 17000) %>%
@@ -18,7 +26,7 @@ data.max <- data %>%
 # wide processed, non-max out data
 data.max.agg <- data %>%
   filter(time <= 17000) %>%
-  group_by(participant, condition, trial_type) %>%
+  group_by(participant, language, condition, trial_type) %>%
   summarise(time = mean(time, na.rm = TRUE)) %>%
   spread(trial_type, "time") %>%
   mutate(
@@ -28,17 +36,24 @@ data.max.agg <- data %>%
 n <- nrow(data.max.agg)
 alpha <- 0.05
 
-kable(data.max.agg,
+data.max.summary <- data.max.agg %>%
+  group_by(language, condition) %>%
+  summarise(n        = n(),
+            familiar = mean(familiar, na.rm = TRUE),
+            novel    = mean(novel, na.rm = TRUE))
+
+kable(data.max.summary,
       digits = 2,
-      col.names = c("Participant", "Randomisation", "Familiar (ms)", "Unfamiliar (ms)", "Difference (ms)", "Proportion (%)")
+      col.names = c("Language", "Randomisation", "N", "Familiar (ms)", "Novel (ms)"),
+      align = "c"
 )
 ```
 
-```{r maxedOut_proportion, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 
 ggplot(data.max.agg, aes(x = proportion, fill = condition)) +
   geom_density(alpha = 0.5, colour = NA) +
-  labs(x = "Percentage of maxed out trials (> 17,000 ms)", y = "Density", fill = "Test word") +
+  labs(x = "Percentage of maxed out trials (> 17,000 ms; %)", y = "Density", fill = "Randomisation") +
   scale_fill_brewer(palette = "Dark2") +
   scale_x_continuous(limits = c(0, 100)) +
   theme(
@@ -52,7 +67,7 @@ ggplot(data.max.agg, aes(x = proportion, fill = condition)) +
 
 ```
 
-```{r lt-maxout_condition-item_table, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 max.out.item <- data %>%
   filter(time > 17000) %>%
   group_by(condition, item) %>%
@@ -67,13 +82,14 @@ max.out.item <- data %>%
 kable(
   max.out.item,
   digits = 2,
-  col.names = c("Randomisation", "Word", "Maxed out", "Total", "%", "Type")
+  col.names = c("Randomisation", "Word", "Maxed out", "Total", "%", "Type"),
+  align = "c"
 )
 ```
 
 Looking times were Filtered ($\leq$ 17,000 ms) and aggregated by participant.
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 data.max %>%
   group_by(participant, trial_type, condition) %>%
   summarise(time = mean(time, na.rm = TRUE)) %>%
@@ -89,11 +105,12 @@ data.max %>%
   kable(.,
         digits = 2,
         row.names = FALSE,
-        col.names = c("Trial type", "N", "Mean", "Median", "SEM", "95% CI")
+        col.names = c("Trial type", "N", "Mean", "Median", "SEM", "95% CI"),
+        align = "c"
   )
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
 t.test.data.max <- data.max %>%
   group_by(participant, trial_type) %>%
   summarise(time = mean(time, na.rm = TRUE)) %>%
@@ -118,6 +135,7 @@ data.max %>%
   kable(.,
         digits = 3,
         row.names = FALSE,
-        col.names = c("Familiar", "Unfamiliar", "T-value", "DF", "95% CI", "p-value", "Cohen's D")
+        col.names = c("Familiar", "Unfamiliar", "T-value", "DF", "95% CI", "p-value", "Cohen's D"),
+        align = "c"
   )
 ```

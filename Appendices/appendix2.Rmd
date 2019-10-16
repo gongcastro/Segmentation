@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # Appendix 2: Participant-level looking times
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
@@ -7,7 +12,7 @@ library(tidyr)     # for reshaping datasets
 library(ggplot2)   # for visualising data
 library(knitr)     # for nice tables
 
-data.agg <- read.delim("Data/02_aggregated.txt") %>%
+data.agg <- read.delim("../Data/02_aggregated.txt") %>%
   select(participant, condition, language, familiar, novel)
 
 kable(data.agg,
