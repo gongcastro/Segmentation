@@ -1,0 +1,411 @@
+---
+title             : "Catalan and Spanish natural speech segmentation at 8 months of age"
+shorttitle        : "Segmentation"
+
+author: 
+  - name          : "Gonzalo García-Castro"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    address       : "25-27, Ramon Trias Fargas, Barcelona 08005, Spain"
+    email         : "gonzalo.garciadecastro@upf.edu"
+  - name          : "Mireia Marimon"
+    affiliation   : "2"
+  - name          : "Chiara Santolin"
+    affiliation   : "1"
+  - name          : "Nuria Sebastian-Galles"
+    affiliation   : "1, 3"
+
+affiliation:
+  - id            : "1"
+    institution   : "Center for Brain and Cognition, Pompeu Fabra University"
+  - id            : "2"
+    institution   : "Department of Linguistics, University of Potsdam"
+  - id            : "3"
+    institution   : "Department of Information and Communications Technologies, Pompeu Fabra University"
+
+abstract: |
+  Phoneme learning occurs in the first year of life when infants begin to acquire their first words. It is possible that infants use lexical-level information to identify relevant phonemes of their native languages. Since Catalan and Spanish are very lexically-similar languages, 8 months-old bilinguals represent an interesting population to investigate the possible top-down influence on phoneme learning. Catalan/Spanish bilinguals are typically exposed to higher vowel variability at the level of lexical representations with respect to their monolingual peers. For instance, infants seem to treat words like *dodi* and *dudi* similarly, despite being able to discriminate the /o/-/u/ contrast. The present research was aimed at investigating how Spanish/Catalan monolinguals and bilinguals encode new word forms at eight months when confronted with phoneme changes such as the aforementioned. We used an adaptation of @jusczyk1995's Head-turn Preference Procedure, which has proven to be suitable for investigating word-form learning in a wide variety of languages and ages. Infants were familiarized with sentences containing nonsense words in their native/dominant language. At test, we tested whether infants could identify familiar words presented individually along with novel words. We found no evidence of familair word recognition at test. Equivalence testing revealed that this outcome is unlikely to be drive by lack of statistical power. These results contrast with those obtained in previous studies reporting evidence of word segmentation using a similar with similar populations.
+  
+  <!-- https://tinyurl.com/ybremelq -->
+  
+keywords          : "bilingualism, language acquisition, segmentation, phoneme learning, head-turn preference procedure"
+wordcount         : "X"
+
+bibliography      : ["Bibliography/segmentation.bib"]
+
+figsintext        : yes
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+linenumbers       : yes
+linkcolor         : "blue"
+mask              : no
+draft             : no
+
+documentclass     : "apa6"
+classoption       : "man"
+output            :
+  papaja::apa6_pdf: 
+    latex_engine: xelatex
+---
+
+```{r setup, include=FALSE, cache=FALSE}
+
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  eval      = TRUE,
+  include   = TRUE,
+  cache     = FALSE,
+  results   = "asis",
+  fig.keep  = "all",
+  fig.show  = "asis",
+  fig.cap   = FALSE
+)
+
+#### load packages ###############################################
+library(papaja)    # for APA format
+library(bookdown)  # for advanced knitr
+library(here)      # for using relative paths
+library(knitr)     # for nice tables
+library(magrittr)  # for pipes
+library(dplyr)     # for manipulating data
+library(tidyr)     # for manipulating datasets
+library(forcats)   # for working with categorical variables
+library(ggplot2)   # for visualising data
+library(ggalt)     # for plotting lollipops
+library(TOSTER)    # for equivalence testing
+library(patchwork) # for arranging plots
+
+#### set up ######################################################
+
+# set parameters
+alpha      <- 0.05 # significance criterion
+max.bil    <- 80   # maximun dominance for being bilingual
+min.mon    <- 80   # minimun dominance for being monolingual
+min.trials <- 8    # minimum number of test trials
+min.time   <- 2000 # mimimum trial looking time
+outlier.sd <- 2.5  # standard deviation for considering outliers
+sesoi      <- 0.5  # smallest effect size of interest
+set.seed(888)      # for reproducibility
+
+#### import data #################################################
+
+# long raw data
+data <- read.table(here("Data", "01_processed.txt"))
+
+# wide processed data
+data.agg <- read.table(here("Data", "02_aggregated.txt"))
+
+# long raw, non-max out data
+data.max <- data %>%
+  filter(time <= 17000) %>%
+  group_by(participant, condition, item, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE),
+            n    = n())
+
+# wide processed, non-max out data
+data.max.agg <- data %>%
+  filter(time <= 17000) %>%
+  group_by(participant, condition, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE)) %>%
+  spread(trial_type, "time")
+
+# summary data by trial type
+data.summary <- data.agg %>%
+  summarise(
+    n    = n(),
+    mean_novel    = mean(novel),
+    mean_familiar = mean(familiar),
+    sem_novel     = sd(novel)/sqrt(n),
+    sem_familiar  = sd(familiar)/sqrt(n),
+  )
+
+excluded <- read.table(here("Data", "01_processed-excluded.txt")) %>%
+  summarise(
+    interference = sum(interference),
+    few_trials   = sum(few_trials),
+    linguistic_profile = sum(linguistic_profile),
+    incomplete = sum(incomplete),
+    experimental_failure = sum(experimental_failure),
+    interference = sum(interference),
+    health_issues = sum(health_issues)
+    ) %>%
+  as.vector()
+
+#### define variables ########################################
+
+# sample sizes 
+n                <- nrow(data.agg)
+participant.data <- count(data.agg, condition, language, sex)
+n.sex            <- participant.data %>%
+  select(language, condition, sex, n) %>%
+  group_by(sex) %>%
+  summarise(n = sum(n))
+
+# ages
+age.language <- data.agg %>%
+  group_by(profile, language) %>%
+  summarise(
+    n = n(),
+    mean = mean(age),
+    min = min(age),
+    max = max(age)
+  )
+age.profile <- data.agg %>%
+  group_by(profile) %>%
+  summarise(
+    n = n(),
+    mean = mean(age),
+    min = min(age),
+    max = max(age)
+  )
+
+dominance <- data.agg %>%
+  group_by(profile, language) %>%
+  summarise(
+    mean = mean(dominance),
+    min = min(dominance),
+    max = max(dominance)
+  )
+
+#### equivalence testing #####################################
+
+tost <- read.table(here("Data", "04_analysis.txt")) %>%
+  mutate(p = printp(p))
+
+power <- powerTOSTpaired(
+  alpha           = alpha, 
+  N               = n,
+  low_eqbound_dz  = -sesoi,
+  high_eqbound_dz = sesoi
+)
+```
+
+# Introduction
+
+Language acquisition is a key milestone of infant development. One of the hallmarks of language acquisition is how effortlessly infants seem to achieve it, given its perceptual and structural complexity [e.g., @friederici2017]. Speech is the first form of language to which infants are exposed, starting even before birth [@abboub2016; @decasper1986; @may2011; @moon2013]. After birth, infants must learn to identify and discriminate speech variations which are relevant for properly processing the language input. To do so, phoneme identification must be attained, as it is the simplest acoustic unit of speech. Different words are characterized by different phonemes. Hence, perception of such phonemes is a requirement to learn word forms, that is, to form new phonological representations and later be able to retrieve them to recognize the same words in different contexts.
+
+From birth, infants bear sophisticated perceptual abilities that allow detections of subtle variations in the speech signal. These speech variations are more difficult to perceive later in life, when some of their perceptive abilities have adapted to the characteristics of the linguistic input. One of the domains that has been observed to be dependent of the speech input is phoneme learning, that is, the ability to discriminate and identify phonemic categories that exist in listeners’ native language.
+
+During the first six months of age, infants show a remarkable ability to differentiate both native and non-native phonemes without relevant experience (@dehaenelambertz1994; @eimas1971; @polka1994; @werker1984, @werker2002]. From six to ten months, infants begin to lose this capacity and attune relevant feature of their speech input. This process, named perceptual narrowing, consists in a decline of the capacity to perceive non-native contrasts (e.g., @aslin1981; @werker1984). Non-prototypical phoneme productions (such as non-native phonemes) are perceived as the nearest prototypical native phoneme, in what has been named a perceptual magnet effect [@kuhl1992]. Those phonemes acoustically distant enough the native ones remain as indi- vidual categories, some of them as non-linguistic sounds [@best1988]. @werker1981 observed that six-to-seven month-old English learning infants were able to discriminate /Ta/-/ta/ and /th/-/dh/ Hindi-specific contrasts, whereas adults failed to do so in a similar task (see also @werker1984). Subsequent work replicated this developmental pattern using different consonant and vowel contrasts, namely: /r/-/l/ contrast in Japanese-learning infants (@kuhl1992), Hebrew /b/-/p/ contrast in Arabic-learning infants [@segal2016], /t$\int$h/-/t$\int$/ Urdu contrast in English-learning infants [@dar2018], /U/-/Y/ and /u/-/y/ German vowel contrasts in English-learning infants [@polka1994], or /e/-/e/ vowel contrast in Spanish learners [@bosch2003].
+
+Perceptual narrowing is not the only process involved in phonemic learning. Attunement to native speech also seems to provide an enhanced sensitivity to phonemic contrasts characterizing native languages [@kuhl2006; @polka2001; @shin2018; @tsuji2014]. Moreover, some studies have found remarkable variability in the developmental pattern of different phonemes. For instance, @best2003, @best2001, and @best1995 observed that some non-native contrasts prevail perceptual narrowing, while several cross-linguistic studies showed directional asymmetries in infant vowel perception, that is, some are more difficult to perceive when its phonemes are presented in a particular order [@dar2018; @kuhl2006; @polka1996; @segal2016].
+
+Thus, phoneme learning seems to be a quite complex mechanism determined by the combination of distinct processes. Yet, the aforementioned results suggest that, by the end of the first year, infants possess a phonemic inventory specific to the language(s) they are exposed the most. What cues do infants rely on to warp their phonemic inven- tory, and whether they differently use these cues at different points in development remain some elusive issues. Since the speech signal provides several types of information that are available to the infant during speech perception, previous research has investigated the potential exploitation of such cues by the infants to bootstrap phonemic categories.
+
+Most of the mechanisms suggested to account for phoneme learning can be linked to a bottom-up approach. One of such mechanism is the distributional account, according to which six-to-eight-month-olds consider the relative frequency of a given phoneme as the principal cue in order to discover native phonemic contrasts [see @saffran2018 for a review]. In particular, @maye2002 found that six-to-eight month-olds showed a decline in discrimination of the /da/-/ta/ contrast after exposure to an unimodal distribution of the two phonemes. This means that participants found more difficult to perceive such contrast when most of the previous realizations of each phoneme lied at the center of the acoustic *continuum* formed by the /da/ and /ta/ extremes. Conversely, infants exposed to a bimodal distribution (most of the realizations lied in the extremes of the *continuum*, corresponding to the “prototypical” /da/ and /ta/) not only showed discrimination, but also a facilitation effect of the aforementioned contrast [@maye2008]. At 10 months, infants seemed to be less sensitive to the distributional properties of their linguistic input [@yoshida2010], a fact that might reveal the existence of a critical period (in between six and eight months) during which infants make particular use of statistical properties of the speech to detect phonemes. According to the distributional account, after this perceptual narrowing, less fre- quent phonemes would fall into the acoustically closest category formed by high frequent phonemes. Hence, distributional properties embedded in the speech signal might provide valuable information about how relevant a phoneme is when perceiving native language. Despite statistical learning has provided an interesting framework to study phoneme learning, subsequent research has shown that distributional information might not be sufficient to guide this process, and that other processes may play an important role in determining native phonetic inventory.
+
+Some of the distributional account’s predictions have been challenged by the results obtained in bilingual populations. In particular, @bosch2003 observed Catalan/Spanish bilingual infants, and found a U-shaped developmental pattern concerning the /e/-/$\varepsilon$/ Catalan vowel contrast. Bilinguals and Spanish and Catalan monolinguals were able to discriminate this contrast at four months but not at eight, when only Catalan monolinguals showed discrimination. Surprisingly, bilinguals showed no discrimination when the /e/ and /$\varepsilon$/ vowels were interchanged, just like Spanish monolinguals did. In addition, at 12 months, bilingual infants regained discrimination. Given that Catalan-Spanish bilinguals were exposed to the /e/-/$\varepsilon$/ just like Catalan monolinguals, these results posed a challenge to the assumption that mere exposure to native lan- guages is sufficient to drive infants into native phonemic systems.
+
+Distributional learning can, potentially, explain the U-shaped pattern found by @bosch2003. The Spanish /e/ lies in between the Catalan /e/ and /$\varepsilon$/ in the acoustic space, and is much more frequent than the latter [30% in Spanish versus 8% in Catalan @alcina1979; @rafel1979]. Hence, bilinguals might have been exposed to a unimodal-like distribution of the contrast. In distributional terms, this would mean that bilinguals may have been exposed much more frequently to the Spanish /e/ than to the Catalan /e/ and /$\varepsilon$/ vowels. In line with @maye2002, discrimination of the Catalan contrast might have been hindered by exposure to the unimodal distribution underlying the bilingual input. Later recovery of discrimination was explained by the authors by cumulative experience of bilingual infants to each of the languages. Indeed, it is important to mention that the typical amount of individual language exposure of bilingual infants is lower than that of monolinguals. @bosch2003 pointed that bilinguals might take longer to reach the same level of acoustic experience. However, given that at 12 months the distributional properties of the speech input are likely the same, it is possible that mere exposure to them is not sufficient to regain this contrast at this age.
+
+The underlying assumptions of the distributional account were challenged by subsequent research. @sebastiangalles2009 found the same U-shaped developmental pattern in Catalan/Spanish bilinguals using another vowel contrast, /o/-/u/, present in both languages. Unlike the /e/-/$\varepsilon$/ contrast, the /o/-u/ contrast is present in both Catalan and Spanish and accommodates better a bimodal distribution. As indicated by Sebastian-Galles & Bosch, the /o/ vowel is more frequent that the /u/ vowel in Spanish, while the /u/ vowels is more frequent than the /o/ vowel in Catalan. Nonetheless, the acoustic region of each phoneme is clearly separated. Following the distributional account, infants should have distinguished this bimodal-like contrast at all ages. Bilinguals, however, again failed at discriminating this contrast at eight months. Additionally, when tested with the /e/-/u/ contrast (bimodal but acoustically more distant), bilinguals’ developmental pattern matched that showed by Catalan monolinguals. Altogether these results show that the distributional learning account may not be sufficient to explain phonemic learning in bilingual contexts.
+
+On the other hand, results by @albaredacastellot2011 using an anticipation paradigm showed that discrimination of the /e/-/$\varepsilon$/ contrast does take place at 8 months in bilinguals, and suggested that the previous results might be due to a lack of saliency/attention rather than to a discrimination at this age. @sebastiangalles2009 and also @albaredacastellot2011 suggested that the existence of a high number of cognates between Spanish and Catalan resulted in a difference in the pattern of responses between monolinguals and bilinguals in paradigms requiring recovery of attention in the test phase.
+
+As noted by @sebastiangalles2009, Catalan and Spanish bear high phono-lexical similarity. This can be illustrated by the fact that cognates – words that share an etymological origin, hence, phonological similarity – represent over 65-70% of the lexical inventory of both languages [@green1988]. Spanish-Catalan cognates frequently differ in acoustically close vowels, often involving exchanges of phonemes from the /e/-/$\varepsilon$/ and /o/-/u/ vowel contrasts (e.g. [o.'$\beta$e.xa], *sheep* in Spanish changes to [u.ˈ$\beta$e.ʎa] in Catalan). This fact results into a larger exposure to vowel variability at the level of lexical representations in Catalan/Spanish bilingual infants with respect to their monolingual peers. For this reason, such bilinguals might disregard vowel changes involving the /e/-/$\varepsilon$/ and /o/-/u/ vowel contrasts that occur in similar word contexts (i.e., cognates). Supporting this hypothesis, @ramoncasas2009 found that Catalan/Spanish bilinguals show lower sensitivity to vowel mispronunciations within cognates involving the /e/-/$\varepsilon$/ contrast, while other studies showed that bilinguals are still able to discriminate such contrast when presented in minimally differing words [@ramoncasas2017].
+
+The aforementioned studies provide support for this hypothesis: infants discriminate both contrasts [@albaredacastellot2011], but do not seem to change their response pattern when confronted with /e/-/$\varepsilon$/ and /o/-/u/ vowel switches [@bosch2003; @sebastiangalles2009]. This could indicate that Catalan-Spanish infants consider /e/-/$\varepsilon$/ and /o/-/u/ vowel switches as irrelevant when encoding new word forms. In other words, lexical-level information might modulate phoneme learning at 8 months.
+
+Phoneme learning models have traditionally omitted the fact that infants are rarely exposed to isolated phonemes. Rather, the phonemic inventory to which they must attune is embedded in words. According to a complementary approach, the cues that might guide phonemic learning might also be encoded in the lexical level, involving top-down mechanisms. Word-level information is already available to infants from six to 12 months [@bergmann2016], the same age range during which phonemic perceptual narrowing develops. As suggested by previous studies, lexical knowledge could guide infants in tuning into native-language(s)’ phoneme inventory, possibly interacting with bot- tom-up-guided processes [@elsner2013].
+
+Evidence from simulated data has provided several hypotheses on what type of cues may lead to successful phonemic learning, and how should these cues be weighted in order to best attune to the acoustic input provided by the speech signal. Distributional learning seems to explain phonemic learning just partially, since successful classification rates in computational models are lower when phonetic categories overlap in the acoustic space [@dillon2013] regardless of the amount of distributional information provided. In contrast, using Bayesian models, it has been suggested that lexical cues seem to provide additional information regarding phonetic classification, potentially playing a central role in phonemic learning [@feldman2013b]. The same results have been shown in
+
+Eight-month-old infants and adults [@feldman2013a]. In summary, hearing acoustically similar phonemes in distinct word contexts could lead to the formation of separate phonetic categories. If the distributional properties of the speech input were sufficient for bootstrapping phonetic categories, lexical information should be redundant. The results observed by Feldman et al., however, suggest that lexical information could indeed be critical for successfully for phonetic categories. The lexical account provides valuable insights for revisiting bilingual phonemic learning.
+
+Infants begin to create word forms between six to twelve months of age. The seminal works by @jusczyk1995; @jusczyk1999 revealed that infants start segmenting speech (i.e., extracting words forms from the speech stream) of native language at 8 months of age. Using the Head-turn Preference Procedure, 6- to- 7- month-olds were familiarized to individual monosyllabic words. The same words and other new words were presented embedded in sentences at test. Results showed that only 7-month-olds were able to distinguish familiar vs. unfamiliar words, suggesting that they segmented the target words from the sentences. Additionally, they examined how acoustically detailed was the representation of word forms. Infants were tested with the same words, but some of them had been changed in one consonantal phoneme. Infants treated these new words as unfamiliar, what suggested that infants at 7 months of age are able to represent acoustically accurate word forms. Importantly, these early segmentation abilities have been shown in different languages [e.g. @nishibayashi2015] as well as in bilingual infants [@bosch2013].
+
+Segmentation appears to be guided by different cues contained in the speech signal, which are used differently based on infants’ linguistic experience. For instance, statistical distributions of syllables composing words (e.g., co-occurrence frequencies, transitional probabilities) are privileged around 8 months of age to detect individual words embedded in an artificial language with no other cues to word boundaries [e.g., @saffran1996; @saffran2018; @santolin2018 for review]. In addition to statistical cues, prosodic information helps infants to segment the speech. Neonates are already sensitive to some suprasegmental features of the speech stream [@abboub2016; @bertoncini1995; @christophe2001], and this rhythm perception is later attuned to match the native language input [@bhatara2013; @skoruppa2013]. Both statistical and suprasegmental cues, along with others, such as phonotactics [@friederici1993; @gonzalezgomez2013; @sebastiangalles2002], contribute to the extraction of word forms from speech, based on the prop- erties characterizing different languages [@thiessen2003].
+
+Most of the literature agree in that early speech segmentation is partially sup- ported by bottom-up mechanisms however, as lexical processes take place and infants develop word forms, bottom-up and top-down mechanisms interact in speech segmentation [@jusczyk1999; @mersad2012]. Indeed, lexical processes may help infants with additional information necessary to segment the speech, especially when the input does not provide enough cues to word boundaries. Furthermore, it has been suggested that, if infants are able to recognize words within the speech stream, it is likely the case that phonological representations of words bootstrap phonemic learning.
+
+In short, it has been proposed that 1) infants must first learn phonemes to later identify word forms, and 2) lexical-level information may influence phoneme learning at the same time. For example, 8-month-old Catalan/Spanish bilinguals ignore switches of contras- tive vowels within words, namely the /e/-/$\varepsilon$/ and the /o/-/u/ vowels. Catalan/Spanish bilinguals are exposed these switches within similar word contexts, provided by cognates. This could be leading them to store a common phonological representation for both realizations of the cognate, hence, to ignore such phoneme variability. If this is true, it could be predicted that, after segmentation, if the /e/ and /$\varepsilon$/ or the /o/-/u/ vowels are interchanged in familiar words, the resulting words would still be treated as familiar. Conversely, if the change implicates a contrast that is less commonly involved in cognates such as the /e/-/u/ or a consonant contrast, it would lead to the resulting words to be treated as unfamiliar by 8 months-old Catalan/Spanish bilinguals, as @jusczyk1995 found.
+
+In summary, the main objective of the present research would be to investigate whether bilingual infants show the same response pattern than monolinguals when presented with a vowel change involving the /o/-/u/ and the /e/-/u/ contrasts. In order to investigate this issue, it must be first verified that we use a paradigm that results in segmentation at 8 months by Catalan-Spanish monolinguals and bilinguals. Therefore, the present study represents a control study aiming at testing the procedure and acquiring a baseline with which compare results provided by the manipulation of the acoustic materials (e.g. using different phonemic contrasts) in subsequent experiments. To investigate segmentation abilities in 8 months-old infants, we will use the Head-turn Preference Procedure, as in @jusczyk1995. This procedure allows to test discrimination amongst acoustic stimuli through visual preferences, assessing whether infants look longer to visual objects associated to familiar and unfamiliar acoustic stimuli. Many pitfalls have been raised concerning the interpretation of results provided by this paradigm. However, it is a highly used procedure that has proved to be a suitable para- digm to test segmentation abilities in both monolinguals and bilinguals [e.g. @bosch2013; @goyet2013; @jusczyk1999].
+
+In this experiment, infants will be familiarized with non-words embedded in real sentences; at test, isolated target words will be presented along with unfamiliar words, and discrimination will be measured. Different looking times associated with familiar and unfamiliar test words would indicate recognition of words heard during familiarization; hence that infants have successfully parsed the speech stream and identified the target words. Moreover, this would likely suggest that phonological representations of words are available for bootstrapping of phoneme categories.
+
+Stimuli will consist of non-words to avoid potential previous familiarity with the speech material. In the familiarization phase, non-words (from now, target words) will be embed- ded in sentences either in Catalan or in Spanish (depending on the dominant language of the infant). At this age, infants show difficulties to segment polysyllabic words [@jusczyk1999; @nishibayashi2015]. Thus, we will use monosyllabic non-words. Infants will be familiarized with different CVC monosyllabic target words, one of them containing the /o/ vowel, and other containing the /u/ vowel. As highlighted previously, the /o/-/u/ contrast is not only present in both Catalan and Spanish, but also it accommodates a bimodal distribution in the acoustic space, that is, both phonemes are frequent in each language. Moreover, in procedures based on recovery of attention, bilinguals do not show changes in their response patterns at 8 months-of age when confronted with switches involving this contrast. This makes this contrast ideal for the aim of present study. @bosch2013 have previously shown that Catalan/Spanish bilinguals were able to segment monosyllables from sentences. However, the stimuli they used did not involve the /o/-/u/ contrast, and thus did not allow to test the current hypothesis. Subsequent experiments will test whether either a vowel (e.g. /o/ for /u/) or a consonant change (e.g. /f/ for /b/) might exert an effect on infants looking times to familiar or unfamiliar words, what may reveal how flexible are the potential phonological representation of target words created by infants, and whether this flexibility is present in both vowels and consonants according to the speech input that they receive.
+
+Previous research had shown that infants at 8 months of age listen longer to the familiar materials, indicating familiarity preference in both monolinguals [e.g., @jusczyk1995; @nazzi2005; @nishibayashi2015] and bilinguals [@polka2017]. However, @bosch2013 found an inverse pattern when testing Catalan- and Spanish-learning mon- olinguals and bilinguals: both infants looked longer to novel words at 8 months of age. The interpretation of preferences is not straightforward, since many factors play a role in the directionality of the preferences [@houstonprice2004]. It has been claimed that familiarity-novelty preference is dependent of the proficiency of the participants in speech perception: more proficient infants would show a novelty preference while less proficient ones would show a familiarity preference. @bosch2013 interpreted the novelty preference they found in 8 months old bilinguals as an indicator of such profi- ciency, since 6-month-olds showed a familiarity preference. However, not only age influences the preference, as a recent meta-analysis has shown [@bergmann2016]. Also other factors, such as time a familiarization during the procedure might exert an effect on the directionality of preference [@hunter1988]. Since the novelty-pref- erence found by Bosch et al. is not consistent with the direction of preference reported by previous studies, we will also analyze the preference that the infants of the present study.
+
+# Methods
+ 
+## Participants
+We collected data from `r n` full-term 8-month-old infants (`r n.sex$n[1]` females) with no history of hearing, motor, or vision problems according to parents’ report. The accepted age range for collecting participants was from 7;15 to 9 months (261-280 days). Participants were recruited from private clinics in the Metropolitan area of Barcelona (Spain). Informed consent was obtained prior to any procedure. Socioeconomic status and linguistic environment were assessed using a detailed questionnaire as in @bosch2001. Infants with equal or longer exposure than `r min.mon`% of the total time to one of their languages were considered monolinguals while those exposed less than `r max.bil`% of the total time to one of their languages were considered bilingual.
+
+`r printnum(age.profile$n[2], numerals = FALSE, capitalize = TRUE)` monolinguals (Mean age = `r round(age.profile$mean[2], 2)` days, range = `r round(age.profile$min[2], 2)`-`r round(age.profile$max[2], 2)` days) from monolingual Catalan (*n* = `r age.language$n[3]`) and Spanish (*n* = `r age.language$n[4]`) environments, and `r age.profile$n[1]` bilinguals (Mean age = `r round(age.profile$mean[1], 2)` days, range = `r round(age.profile$min[1], 2)`-`r round(age.profile$max[1], 2)` days), from Catalan-dominant (*n* = `r age.language$n[1]`) and Spanish-dominant (*n* = `r age.language$n[2]`) environments were included in the final analysis. Mean exposure to dominant language was `r round(dominance$mean[3], 3)`% (range = `r round(dominance$min[3], 3)`-`r round(dominance$max[3], 3)`%) in the Catalan monolingual group, `r round(dominance$mean[4], 3)`% (range = `r round(dominance$min[4], 3)`-`r round(dominance$max[4], 3)`%) in the Spanish monolingual group, `r round(dominance$mean[1], 3)`% (range = `r round(dominance$min[1], 3)`-`r round(dominance$max[1], 3)`%) in the Catalan-dominant bilingual group, and `r round(dominance$mean[4], 3)`% (range = `r round(dominance$min[4], 3)`-`r round(dominance$max[4], 3)`%) in the Spanish-dominant bilingual group. `r printnum(sum(excluded), numerals = FALSE, capitalize = TRUE)` additional participants were excluded due to health-related issues (*n* = `r excluded$health_issues`), unsuitable linguistic profile (*n* = `r excluded$linguistic_profile`), experimental failure (*n* = `r excluded$experimental_failure`), failure to reach the minimum number of `r min.trials` valid test trials (*n* = `r excluded$few_trials`), no reaching the test phase (*n* = `r excluded$incomplete`), or parental interference (*n* = `r excluded$interference`). Parental educational attainment is presented in Appendix 1.
+
+## Stimuli
+
+We used four target non-words: *gon*, *mus*, *for*, and *pul*, taken from @marimon2015. Half of the words contained the /o/ phoneme (*gon*, *for*) and the other half contained the /u/ phoneme (*mus*, *pul*), both contrastive in Catalan and Spanish. None of those words exist in Spanish^[The word *mus* actually exists. It is a card game. However, infants are extremely unlikely to be familiar with this word.]. All word phonemic onset involved a consonant, as infants have been shown to start segmenting words starting with consonants earlier than words starting with vowels [@mattys2001]. We created six different sentences for each target word. The position of the target word within the sentences was counterbalanced so every passage grouped sentences containing the target words at the initial (2), middle (2) and final (2) positions.
+
+### Stimuli recording and editing
+
+For each word we created 7 different passages combining the same 6 sentences, separated by 1 second. Within each passage, the order of the sentences was randomised using a randomizer ([www.random.org](www.random.org)). The sentences were concatenated in random order with one constraint: the last sentence of one passage should not be the same as the first of the next passage, to avoid the same sentence to be repeated consecutively. The order of the resulting passages was the same in both languages. The passages were presented in the same order to all infants in the same condition.
+
+Natural exemplars of each word were produced by a highly competent Catalan/Spanish bilingual female and recorded in a sound attenuated room with a multi-pattern condenser microphone. The talker was asked to read the stimuli while not emphasizing the target non-words. The same talker recorded all stimuli in a single session. Words were digitized, down-sampled to 16 KHz and edited using Praat 6.0.37 [@praat] and Audacity software (version 2.0.5; @audacity^[Audacity® software is copyright © 1999-2018 Audacity Team Web site: https://audacityteam.org/. It is free software distributed under the terms of the GNU General Public License. The name Audacity® is a registered trademark of Dominic Mazzoni.]), saved as `.wav` files, and finally edited using Praat [version 6.0.37; @praat]. The edition pipeline for the passages consisted in the following steps: 1) Sentences were recorded (online monitoring ensured good sound quality recording), 2) silences at the onset and the offset of each recording were removed, 3) peak intensity intensity for each passage was normalised at 65.0 dB, 4) silences of 1000 ms duration were added at the offset of each recording, 5) sentences embedding the same word were concatenated, 6) passages of each condition were concatenated. This step resulted in four different strings: a *gon-mus* string in Catalan, a *gon-mus* string in Spanish, a *for-pul* string in Catalan, and a *for-pul* string in Spanish. Within each condition, all infants listened to the same string.
+
+The edition pipeline for the **test words** consisted on the following steps: 1) Words were recorded individually exactly as sentences were recorded, by the same speaker, in the same session, 2) silences at the onset and the offset of each recording were removed, and 3) peak intensity of each passage was normalised at 65.0 dB. The spaces between words in the test phase was introduced by the script used to display stimuli during the experiment.
+
+## Procedure
+
+An adaptation of the Head-turn Preference Procedure was used to test whether infants segmented the target words from the sentences as in @jusczyk1995, and @bosch2003). Infants sat on parent’s lap in a sound-attenuated room equipped with three computer screens placed in front of, and on the two sides of the infant. The experimenter remained in an adjacent testing booth, blind to the audio stimuli (hence to the experimental condition) and coded on-line looking times using custom-designed MATLAB software (R2017b, MathWorks, Inc.; WISP - Wisconsin Infant Studies Program by Rob Olson & Jenny Saffran, UW-Madison).
+
+Infants were familiarized with one of the two passages (based on participants’ dominant language) for two minutes; during the first minute infants heard the stimuli and watched to moving clouds presented on the central screen. During the second minute, a blinking light was displayed contingent on infant looking behavior to familiarize infants with the experimental setting. After familiarization, there were 12 test trials, three for each of the four test items, presented in random order. At the beginning of each test trial, a pinwheel was displayed on the central screen until the infant fixated on it. At that point, the experimenter signaled the central pinwheel to extinguish and one of two side-pinwheels to pop up. When infants looked at the side pinwheel, one of the target words (either one of the two familiar or unfamiliar words) was played repeatedly, with 1,500 ms in between each repetition until the infant looked away for 2,000 ms, or until cumulative 17,000 ms of looking time had elapsed.
+
+```{r hpp, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, fig.cap="Aerial view of the experimental setup. Infants were sited in their parents' lap facing the central screen, with two screens located 90º at right and left from the central screen. Two loudspeakers (located next to the side screens played the acoustic stimuli. Both loudspeakers were hidden behind a white curtain."}
+
+include_graphics(here("Figures", "setup.png"))
+
+```
+
+To control potential intrinsic preferences towards any of the target words, half of the infants of both monolingual and bilingual groups were familiarized with *gon* and *mus* passages (condition *gon-mus*) whereas the other half were familiarized with *for* and *pul* passages (condition *for-pul*). All infants were tested with the four words. The parent was instructed not to interact with the infant during the whole procedure (e.g., no talking, pointing) and not to look to the side screens in order to avoid the infant to follow the parent’s gaze. The parent wore noise-cancellation headphones playing loud music that masked the experimental speech stimuli.
+
+```{r procedure, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, fig.cap="Visual representation of the Head-turn Preference Procedure used (see Procedure section)."}
+
+include_graphics(here("Figures", "procedure.png"))
+
+```
+
+### Familiarisation phase
+
+We created a passage of 6 sentences embedding each word. Infants were familiarised with passages corresponding to two of the words. Hence, infants listened to two passages, what means that each infant listened to 12 different sentences, 6 embedding one word, 6 embedding the other word. The duration of each passage was similar. All infants listened to the sentences for 2 minutes. The duration of familiarisation was set according to @bosch2003. During the first minute of familiarisation, infants listened to both passages of sentences (each embedding a target word) while moving clouds were displayed in the central screen. To control any intrinsic preference toward any of the words (which may potential bias looking preferences in the test phase), we counterbalanced the familiarisation words. Half of the infants were familiarised with the words *gon* and *mus* (condition *gon-mus*), whereas the other half was familliarised with the words *for* and *pul* (condition *for-pul*).
+
+### Training phase
+
+During the second minute of familiarisation, infants listened agains both passages of sentences. This time, a blinking light was displayed in the central screen. When the infant fixated the blinking light, the light disappeared from the central screen and started being displayed in either the right or the left screen randomily. When the infant fixated the blinking light in the side screen at least once and stopped looking at it for at least 2 seconds, the light returned to the central screen. The aim of this minute of familiarisation is to alow infants to get used to make head turns towards the side screens.
+
+### Test phase
+
+In the test phase, 12 trials were performed (3 for each of the 4 words). Three blocks of 12 trials were prepared. Words were separated by 2 seconds and repeated continuously in each trial until maximum of 18 seconds in each trials (7 repetitions max.). Each trial of the test phase consisted of repetitions of the same word. Words within the same trial were separated by 1,500 ms as in @bosch2013. Each trial started with the display of a rotating pinwheel in the central screen. When the infant looked at it, the stimulus disappeared and another one appeared in one of the side screens. A list of a random word was played from the loudspeaker in the same side. Listening time of each trial was registered. Orientation time towards the side in which stimuli were displayed was considered as listening time.
+
+For the completion of the complete trial, a minimum of 2,000 ms of looking time was set. If visual orientation towards the screen was interrupted, recording time was paused and resumed once visual contact was re-established. After 2,000 ms of ceased visual orientation, the trial was stopped, and a new trial began. No predictions were made about the direction of preference towards the familiar or unfamiliar stimuli.
+
+# Results
+
+As dependent variable, we measured looking time to the side screens for familiar and novel words presented at test. Differences in looking time for test words were considered as indicator of discrimination. Looking times in familiar and novel trials were aggregated for each participant by computing the mean looking time for the trials of each condition. Figure 4 shows looking times in novel and familiar trials by participant. A table presenting participant-level looking times is presented in Appendix 2.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, fig.cap="Looking time to familiar and unfamiliar words at test, overall and split by testing language. Boxplots represent the median, 25th and 75th percentiles. Contours represent the probability distribution."}
+
+lt_trialType_data <- data %>%
+  group_by(participant, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE))
+
+lt_trialTypeLanguage_data <- data %>%
+  group_by(participant, language, trial_type) %>%
+  summarise(time = mean(time, na.rm = TRUE))
+
+ggplot(lt_trialType_data, aes(x = trial_type, y = time, fill = trial_type)) +
+  geom_violin(alpha = 0.7, colour = NA) +
+  geom_boxplot(fill = "white", colour = "black", width = 0.25) +
+  geom_point(size = 3, alpha = 0.5) +
+  labs(x = "Trial type", y = "Looking time (ms)", colour = "Trial type", fill = "Trial type") +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  theme(
+    panel.grid.major.y = element_line(colour = "grey", linetype = "dotted"),
+    panel.grid.minor.y = element_line(colour = "grey", linetype = "dotted"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.background = element_rect(fill = "white"),
+    legend.position = "none",
+    text = element_text(colour = "black", size = 12),
+    axis.text = element_text(colour = "black")
+  ) +
+  ggplot(lt_trialTypeLanguage_data, aes(x = trial_type, y = time, fill = trial_type)) +
+  facet_wrap(~language, ncol = 1) +
+  geom_violin(alpha = 0.7, colour = NA) +
+  geom_boxplot(fill = "white", colour = "black", width = 0.25) +
+  geom_point(size = 2, alpha = 0.5) +
+  labs(x = "Trial type", y = "Looking time (ms)", colour = "Trial type", fill = "Trial type") +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  theme(
+    panel.grid.major.y = element_line(colour = "grey", linetype = "dotted"),
+    panel.grid.minor.y = element_line(colour = "grey", linetype = "dotted"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    panel.background = element_rect(fill = "white"),
+    legend.position = "none",
+    text = element_text(colour = "black", size = 12),
+    axis.text = element_text(colour = "black")
+  ) +
+  plot_layout(nrow = 1) +
+  ggsave(here("Figures", "looking-times.png"))
+```
+
+A paired *t*-test comparing novel (*Mean* = `r round(data.summary$mean_novel, 2)`, *SEM* = `r round(data.summary$sem_novel, 2)`) and familiar (*Mean* = `r round(data.summary$mean_familiar, 2)`, *SEM* = `r round(data.summary$sem_familiar, 2)`) looking times failed to reject the null hypothesis at `r alpha` significant criterion, *t*(`r round(tost$df[1], 2)`) = `r abs(round(tost$t[1], 3))`, *p* = `r tost$p[1]`, Cohen's *d* = `r abs(round(tost$d[1], 2))`. A visual inspection of the data revealed that such a lack of statistically significant differences was unlikely to be due to the looking pattern of infants tested in a specific language. Given that this test does not provide any evidence supporting the null hypothesis, we opted to follow-up this analysis with equivalence testing. We performed two one-sided paired *t*-tests, contrasting our *t* estimate against those corresponding to the lower and upper threshold of the smallest effect size we are interested in detecting with our design. We defined such effect size as a Cohen's *d* of `r sesoi`. We based our decision in the most similar previous study we could find: @bosch2013 tested word segmentation from natural speech using a similar procedure in Catalan and Spanish monolinguals and bilinguals. The effect sizes of the contrasts comparing novel and familiar looking times approximated a Cohen's *d* of 0.5 in all groups: *d* = 0.41 for Spanish monolinguals, *d* = 0.48 for Catalan monolinguals, and *d* = 0.51 for Catalan-Spanish bilinguals. To perform this test, we used the TOSTER R package @lakens2017. We achieved a statistical power of `r round(power, 3)*100`% for both constrasts. Results are summarised in Table 1:
+
+
+```{r tost, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+apa_table(tost,
+          caption = "Equivalence testing results.",
+          col.names = c("Test", "t-value", "df", "p", "Cohen's d"),
+          digits = 2,
+          align = "c"
+          )
+
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE, fig.height=5, fig.width=5, fig.cap="Looking time by trial type, and difference score by participant. Diamonds represent the difference score (Novel-Familiar). Grey shaded areas represent the mean and standard error of the mean for each trial type"}
+
+summary <- lt_trialTypeLanguage_data %>%
+  group_by(trial_type) %>%
+  summarise(mean = mean(time, na.rm = TRUE),
+            n = n(),
+            sem = sd(time, na.rm = TRUE)/sqrt(n)) %>%
+  ungroup() %>%
+  mutate(mean = ifelse(trial_type=="familiar", -mean, mean),
+         lower = ifelse(trial_type=="familiar", mean+sem, mean-sem),
+         upper = ifelse(trial_type=="familiar", mean-sem, mean+sem))
+
+lt_trialTypeLanguage_data %>%
+  pivot_wider(names_from = trial_type, values_from = time) %>%
+  mutate(difference = novel-familiar) %>%
+  right_join(., lt_trialTypeLanguage_data, by = c("participant", "language")) %>%
+  select(-familiar, -novel) %>%
+  mutate(time = ifelse(trial_type=="familiar", -time, time)) %>%
+  ggplot(.) +
+  geom_hline(yintercept = 0) +
+  geom_rect(data = summary, aes(xmin = -Inf, xmax = Inf, ymin = lower, ymax = upper), alpha = 0.25, fill = "black") +
+  geom_lollipop(aes(x = participant, y = time, color = trial_type), size = 1) +
+  geom_point(aes(x = participant, y = difference, color = trial_type), colour = "black", shape = 5, size = 2) +
+  labs(x = "Participant", y = "Familiar         Looking time (ms)        Novel",
+       colour = "Trial type", fill = "Trial type",
+       title = ,
+       subtitle = ) +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  coord_flip() +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    panel.grid = element_line(colour = "grey", linetype = "dotted"),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.y = element_blank(),
+    text = element_text(size = 12, colour = "black"),
+    axis.text = element_text(colour = "black"),
+    legend.position = "none"
+  ) +
+  ggsave(here("Figures", "difference_participant.png"))
+
+
+```
+
+# Acknowledgements
+
+We thank Katia Pistrin, Xavier Mayoral and Silvia Blanch for their technical support, Alba Portet and Maria Coll for their help testing infants, and the Speech Acquisition and Perception (SAP) research group members for their valuable comments on this manuscript. We also would like to thank all the parents and infants who so generously participated in this research.
+
+# References
+
+```{r create_r-references, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+r_refs(file = "r-references.bib")
+```
+
+\begingroup
+\setlength{\parindent}{-0.5in}
+\setlength{\leftskip}{0.5in}
+
+<div id = "refs"></div>
+\endgroup
