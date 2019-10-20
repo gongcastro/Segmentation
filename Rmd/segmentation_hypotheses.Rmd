@@ -1,0 +1,18 @@
+---
+title: "Hypoteses"
+author: "Gonzalo García-Castro, Mireia Marimon, Chiara Santolin and Nuria Sebastian-Galles"
+output: pdf_document
+bibliography: "Bibliography/segmentation.bib"
+csl: "Bibliography/apa.csl"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We tested whether infants recognised familiar words at test, what may indicate that the HPP adaptation we are using is suitable to our aims. Previous studies reported that eight-month-old infants are able to success at this task [@bosch2013; @jusczyk1995; @nazzi2005; @polka2012]. We expected all infants to recognise familiar words at test. This should be evidenced by a preference toward either the familiar or the novel words. This preference should be reflected in different looking times test items. This was a control experiment in which we are tested whether infants, regardless of their linguistic profile (monolingual or bilingual) were able to segment made-up words from natural speech in their native language. For this reason, we did not split our sample according to linguistic profile, profile as we would have done in subsequent experiments.
+
+**Operational hypothesis**: Looking times to familiar and novel words will differ at
+0.05 significance criterion, measured by a paired *t*-test.
+
+## References

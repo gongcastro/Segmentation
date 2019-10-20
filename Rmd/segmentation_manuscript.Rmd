@@ -31,7 +31,7 @@ abstract: |
 keywords          : "bilingualism, language acquisition, segmentation, phoneme learning, head-turn preference procedure"
 wordcount         : "X"
 
-bibliography      : ["Bibliography/segmentation.bib"]
+bibliography      : ["../Bibliography/segmentation.bib"]
 
 figsintext        : yes
 figurelist        : no
