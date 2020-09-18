@@ -12,9 +12,10 @@ library(purrr)    # for working with lists
 library(readxl)   # for importing Excel files
 library(tidyr)    # for reshaping datasets
 library(forcats)  # for manipulating categorical variables
+library(here)     # for locating files
 
 #### import data #######################################
-data <- read.table("Data/01_processed.txt") %>% as_tibble() # import list of datasets
+data <- read.table(here("Data", "01_processed.txt")) %>% as_tibble() # import list of datasets
 
 #### aggregate data ####################################
 data <-

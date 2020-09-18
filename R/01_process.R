@@ -10,9 +10,10 @@ library(dplyr)    # for manipulating data
 library(tibble)   # for more informative data frames
 library(tidyr)    # for reshaping datasets
 library(purrr)    # for working with lists
+library(here)     # for locating files
 
 # create functions
-'%!in%' <- function(x, y) !(x %in% y) # evaluate if x is not in vector y
+"%!in%" <- function(x, y) !(x %in% y) # evaluate if x is not in vector y
 
 # set experimental parameters
 # participant-level exclusion criteria
@@ -26,7 +27,7 @@ min.weight    <- 2600       # min. birth weight
 min.gestation <- 36         # min. gestation weeks
 
 #### import data ###############################################
-data <- read.delim('Data/00_raw.txt') %>% as_tibble()
+data <- read.delim(here("Data", "00_raw.txt")) %>% as_tibble()
 
 #### apply trial-level exclusion criteria ######################
 # replace unsuccessful trials with successful trials within each participant
@@ -51,7 +52,7 @@ trials.extra <- # trials to insert
   ungroup()
 
 trials.replaced <- # join failed trials to their correspondent extra trial (if available) and drop the looking time of the former
-  right_join(trials.remove, trials.extra, by = c('participant', 'replacement' = 'replacement_new')) %>%
+  right_join(trials.remove, trials.extra, by = c("participant", "replacement" = "replacement_new")) %>%
   select(-c(time, replacement)) %>%
   rename(time = time_new)
 
@@ -122,21 +123,21 @@ data <-
 # summary of exluded participants
 excluded <-
   tibble(participant = c(id.fail, id.outlier)) %>%
-  mutate(rejection_verbose = case_when(participant %in% id.fail    ~ 'few_trials',
-                                       participant %in% id.outlier ~ 'outlier',
-                                       TRUE                        ~ 'other')) %>%
+  mutate(rejection_verbose = case_when(participant %in% id.fail    ~ "few_trials",
+                                       participant %in% id.outlier ~ "outlier",
+                                       TRUE                        ~ "other")) %>%
   rbind(id.other) %>%
   mutate(
-    few_trials           = case_when(grepl('trials', rejection_verbose)       ~ 1, TRUE ~ 0),
-    linguistic_profile   = case_when(grepl('profile', rejection_verbose)      ~ 1, TRUE ~ 0),
-    incomplete           = case_when(grepl('incomplete', rejection_verbose)   ~ 1, TRUE ~ 0),
-    experimental_failure = case_when(grepl('experiment', rejection_verbose)   ~ 1, TRUE ~ 0),
-    interference         = case_when(grepl('interference', rejection_verbose) ~ 1, TRUE ~ 0),
-    health_issues        = case_when(grepl('health', rejection_verbose)       ~ 1, TRUE ~ 0)
+    few_trials           = case_when(grepl("trials", rejection_verbose)       ~ 1, TRUE ~ 0),
+    linguistic_profile   = case_when(grepl("profile", rejection_verbose)      ~ 1, TRUE ~ 0),
+    incomplete           = case_when(grepl("incomplete", rejection_verbose)   ~ 1, TRUE ~ 0),
+    experimental_failure = case_when(grepl("experiment", rejection_verbose)   ~ 1, TRUE ~ 0),
+    interference         = case_when(grepl("interference", rejection_verbose) ~ 1, TRUE ~ 0),
+    health_issues        = case_when(grepl("health", rejection_verbose)       ~ 1, TRUE ~ 0)
     )
 #### export data #################################################
-write.table(data, 'Data/01_processed.txt', sep = '\t', dec = '.')
-write.table(excluded, 'Data/01_processed-excluded.txt', sep = '\t', dec = '.')
+write.table(data, here("Data", "01_processed.txt"), sep = "\t", dec = ".")
+write.table(excluded, here("Data", "01_processed-excluded.txt"), sep = "\t", dec = ".")
 
 
 

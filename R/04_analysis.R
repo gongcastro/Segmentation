@@ -12,9 +12,11 @@ library(purrr)    # for working with lists
 library(tidyr)    # for reshaping datasets
 library(tibble)   # for tidy data presentation
 library(lme4)     # for LMEM
+library(brms)
 library(car)      # fir checking assumptions
 library(TOSTER)   # for equivalence testing
 library(ggplot2)  # for visualising data
+library(patchwork)
 
 # set statistical parameters
 alpha <- 0.05 # significance criterion
@@ -22,6 +24,12 @@ beta  <- 0.80 # desired statistical power
 sesoi <- 0.50 # smallest effect size of interest (SESOI)
 
 #### import data ##############################################
+
+# trial-level data
+data.long <- read.delim(here("Data", "01_processed.txt")) %>%
+  as_tibble() %>%
+  mutate(trial_type_coded = ifelse(trial_type=="novel", 0, 1))
+
 
 # participant-level long data ready for main analysis
 data <- read.delim(here("Data", "02_aggregated.txt")) %>% # wide data
@@ -99,6 +107,59 @@ shapiro.test(residuals) # test normality of residuals
 
 # homocedasticity
 leveneTest(time ~ trial_type, center = mean, data = data)
+
+#### linear mixed model ################################################
+
+model <- lmer(time ~ trial_type*block + (0 + block + trial_type | participant), data = data.long)
+anova.mixed <- Anova(model, type = "III", test.statistic = "F")
+
+model1 <- brm(time ~ (1 | participant), data = data.long)
+model1 <- add_criterion(model1, criterion = "loo")
+model2 <- brm(time ~ trial_type + (1 + trial_type | participant), data = data.long)
+model2 <- add_criterion(model2, criterion = "loo")
+
+loo_compare(model1, model2)
+
+ggplot(data.long, aes(x = block, y = time, colour = trial_type, fill = trial_type)) +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.1)) +
+  stat_summary(aes(y = predict(model)), fun.data = "mean_se", geom = "ribbon", alpha = 0.5, colour = NA) +
+  labs(x = "Block", y = "Looking time (ms)", colour = "Trial type", fill = "Trial type") +
+  stat_summary(aes(y = predict(model)), fun = "mean", geom = "line") +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    panel.grid = element_line(linetype = "dotted", colour = "gray"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    text = element_text(size = 12, colour = "black"),
+    axis.text = element_text(colour = "black"),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  ggplot(data.long, aes(x = block, y = time, colour = trial_type, fill = trial_type)) +
+  facet_wrap(~participant) +
+  geom_point(alpha = 0.5, position = position_jitter(width = 0.1)) +
+  stat_summary(aes(y = predict(model)), fun.data = "mean_se", geom = "ribbon", alpha = 0.5, colour = NA) +
+  labs(x = "Block", y = "Looking time (ms)", colour = "Trial type", fill = "Trial type") +
+  stat_summary(aes(y = predict(model)), fun = "mean", geom = "line") +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  theme(
+    panel.background = element_rect(fill = "white"),
+    panel.grid = element_line(linetype = "dotted", colour = "gray"),
+    panel.grid.major.x = element_blank(),
+    panel.grid.minor.x = element_blank(),
+    text = element_text(size = 12, colour = "black"),
+    axis.text = element_text(colour = "black"),
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.ticks.x = element_blank()
+  ) +
+  plot_layout(guides = "collect")
+  
+  
 
 #### export data #######################################################
 write.table(residuals, here("Data", "04_analysis-residuals.txt"), sep = "\t", dec = ".")

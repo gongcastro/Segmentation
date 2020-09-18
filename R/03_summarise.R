@@ -9,13 +9,14 @@ library(tibble)   # for tidy data presentation
 library(dplyr)    # for data manipulation
 library(magrittr) # for using pipes
 library(tidyr)    # for reshaping datasets
+library(here)     # for locating files
 
 # specify parameters
 alpha <- 0.05 # significance criterion
 
 #### import data ###########################################
-data.long <- read.table("Data/01_processed.txt", sep = "\t") %>% as_tibble()
-data.wide <- read.table("Data/02_aggregated.txt", sep = "\t") %>% as_tibble()
+data.long <- read.table(here("Data", "01_processed.txt"), sep = "\t") %>% as_tibble()
+data.wide <- read.table(here("Data", "02_aggregated.txt"), sep = "\t") %>% as_tibble()
 
 #### aggregate data by trial ###############################
 summary <-
@@ -33,5 +34,5 @@ summary <-
   ungroup()
 
 #### export data ###########################################
-write.table(summary, "Data/03_summary.txt", sep = "\t", dec = ".")
+write.table(summary, here("Data", "03_summary.txt"), sep = "\t", dec = ".")
 
